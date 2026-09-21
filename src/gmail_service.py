@@ -1,5 +1,10 @@
 import base64
+import hashlib
+import hmac
+import json
 import secrets
+import time
+
 import requests
 import streamlit as st
 
@@ -17,11 +22,12 @@ SCOPES = [
 ]
 
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 
 
 # ============================================================
-# GET OAUTH CONFIGURATION FROM STREAMLIT SECRETS
+# GET OAUTH CONFIGURATION
 # ============================================================
 
 def get_oauth_config():
@@ -36,6 +42,90 @@ def get_oauth_config():
 
 
 # ============================================================
+# CREATE SECURE OAUTH STATE
+# ============================================================
+
+def create_oauth_state():
+
+    config = get_oauth_config()
+
+    nonce = secrets.token_urlsafe(32)
+
+    timestamp = str(int(time.time()))
+
+    payload = f"{timestamp}:{nonce}"
+
+    signature = hmac.new(
+        config["client_secret"].encode("utf-8"),
+        payload.encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
+
+    state_data = {
+        "timestamp": timestamp,
+        "nonce": nonce,
+        "signature": signature
+    }
+
+    state = base64.urlsafe_b64encode(
+        json.dumps(state_data).encode("utf-8")
+    ).decode("utf-8")
+
+    return state
+
+
+# ============================================================
+# VERIFY OAUTH STATE
+# ============================================================
+
+def verify_oauth_state(state):
+
+    if not state:
+        return False
+
+    try:
+
+        config = get_oauth_config()
+
+        decoded = base64.urlsafe_b64decode(
+            state.encode("utf-8")
+        ).decode("utf-8")
+
+        state_data = json.loads(decoded)
+
+        timestamp = state_data["timestamp"]
+        nonce = state_data["nonce"]
+        signature = state_data["signature"]
+
+        payload = f"{timestamp}:{nonce}"
+
+        expected_signature = hmac.new(
+            config["client_secret"].encode("utf-8"),
+            payload.encode("utf-8"),
+            hashlib.sha256
+        ).hexdigest()
+
+        # Verify signature
+        if not hmac.compare_digest(
+            signature,
+            expected_signature
+        ):
+            return False
+
+        # State valid only for 10 minutes
+        current_time = int(time.time())
+
+        if current_time - int(timestamp) > 600:
+            return False
+
+        return True
+
+    except Exception:
+
+        return False
+
+
+# ============================================================
 # CREATE GOOGLE AUTHORIZATION URL
 # ============================================================
 
@@ -43,19 +133,22 @@ def get_authorization_url():
 
     config = get_oauth_config()
 
-    # Generate OAuth state
-    state = secrets.token_urlsafe(32)
-
-    # Store state in session
-    st.session_state["oauth_state"] = state
+    state = create_oauth_state()
 
     params = {
+
         "client_id": config["client_id"],
+
         "redirect_uri": config["redirect_uri"],
+
         "response_type": "code",
+
         "scope": " ".join(SCOPES),
+
         "access_type": "offline",
+
         "prompt": "consent",
+
         "state": state,
     }
 
@@ -76,52 +169,102 @@ def handle_oauth_callback():
 
     code = st.query_params.get("code")
 
+    state = st.query_params.get("state")
+
+    error = st.query_params.get("error")
+
+    # Google returned an error
+    if error:
+
+        st.error(
+            f"Google OAuth error: {error}"
+        )
+
+        return False
+
+    # No authorization code
     if not code:
+
+        return False
+
+    # Verify OAuth state
+    if not verify_oauth_state(state):
+
+        st.error(
+            "OAuth security check failed. "
+            "Please try signing in again."
+        )
+
         return False
 
     config = get_oauth_config()
 
-    # Exchange authorization code for access token
+    # ========================================================
+    # EXCHANGE AUTHORIZATION CODE FOR ACCESS TOKEN
+    # ========================================================
+
     data = {
+
         "code": code,
+
         "client_id": config["client_id"],
+
         "client_secret": config["client_secret"],
+
         "redirect_uri": config["redirect_uri"],
+
         "grant_type": "authorization_code",
     }
 
     try:
 
         response = requests.post(
+
             TOKEN_URL,
+
             data=data,
+
             timeout=30
         )
 
     except Exception as e:
 
-        st.error("Unable to connect to Google OAuth.")
+        st.error(
+            "Unable to connect to Google OAuth."
+        )
+
         st.exception(e)
 
         return False
 
+    # Token exchange failed
     if response.status_code != 200:
 
-        st.error("Unable to complete Google OAuth.")
+        st.error(
+            "Unable to complete Google OAuth."
+        )
 
-        st.code(response.text)
+        st.code(
+            response.text
+        )
 
         return False
 
     token_data = response.json()
 
-    # Store Gmail token
+    # ========================================================
+    # STORE GMAIL TOKEN
+    # ========================================================
+
     st.session_state["gmail_token"] = token_data
 
-    # Remove OAuth parameters from URL
+    # Remove OAuth parameters
     try:
+
         st.query_params.clear()
+
     except Exception:
+
         pass
 
     return True
@@ -143,6 +286,10 @@ def get_gmail_service():
 
     config = get_oauth_config()
 
+    # ========================================================
+    # CREATE GOOGLE CREDENTIALS
+    # ========================================================
+
     credentials = Credentials(
 
         token=token_data.get(
@@ -162,7 +309,10 @@ def get_gmail_service():
         scopes=SCOPES,
     )
 
-    # Refresh expired access token
+    # ========================================================
+    # REFRESH EXPIRED TOKEN
+    # ========================================================
+
     if credentials.expired and credentials.refresh_token:
 
         try:
@@ -185,9 +335,16 @@ def get_gmail_service():
 
             return None
 
+    # ========================================================
+    # BUILD GMAIL SERVICE
+    # ========================================================
+
     return build(
+
         "gmail",
+
         "v1",
+
         credentials=credentials
     )
 
@@ -332,16 +489,24 @@ def get_recent_emails(max_results=10):
             "Please sign in with Google first."
         )
 
-    # Get inbox messages
-    results = service.users().messages().list(
+    # ========================================================
+    # GET INBOX MESSAGES
+    # ========================================================
 
-        userId="me",
+    results = (
+        service.users()
+        .messages()
+        .list(
 
-        labelIds=["INBOX"],
+            userId="me",
 
-        maxResults=max_results
+            labelIds=["INBOX"],
 
-    ).execute()
+            maxResults=max_results
+
+        )
+        .execute()
+    )
 
     messages = results.get(
         "messages",
@@ -350,16 +515,23 @@ def get_recent_emails(max_results=10):
 
     emails = []
 
-    # Read each email
+    # ========================================================
+    # READ EACH EMAIL
+    # ========================================================
+
     for message in messages:
 
         message_data = (
             service.users()
             .messages()
             .get(
+
                 userId="me",
+
                 id=message["id"],
+
                 format="full"
+
             )
             .execute()
         )
@@ -386,7 +558,7 @@ def get_recent_emails(max_results=10):
 
             "sender": headers.get(
                 "from",
-                "Unknown"
+                "Unknown Sender"
             ),
 
             "subject": headers.get(
