@@ -1,18 +1,32 @@
 import streamlit as st
 
-from src.gmail_service import get_recent_emails
+from src.gmail_service import (
+    get_recent_emails,
+    get_authorization_url,
+    handle_oauth_callback
+)
+
 from src.risk_engine import analyze_email
 
-
-# =========================================================
-# PAGE CONFIG
-# =========================================================
 
 st.set_page_config(
     page_title="PhishGuard AI",
     page_icon="🛡️",
     layout="wide"
 )
+
+
+# =========================================================
+# HANDLE GOOGLE OAUTH CALLBACK
+# =========================================================
+
+if "gmail_token" not in st.session_state:
+
+    try:
+        handle_oauth_callback()
+    except Exception as e:
+        st.error("Google authentication failed.")
+        st.exception(e)
 
 
 # =========================================================
@@ -25,9 +39,58 @@ st.subheader(
     "Smart Gmail Phishing & Spam Detection System"
 )
 
-st.success(
-    "🟢 Connected to Gmail"
-)
+
+# =========================================================
+# GMAIL CONNECTION
+# =========================================================
+
+if not st.session_state.get("gmail_token"):
+
+    st.warning(
+        "🔐 Gmail access is required to analyze your inbox."
+    )
+
+    if st.button(
+        "🔑 Sign in with Google",
+        use_container_width=True
+    ):
+
+        try:
+            auth_url = get_authorization_url()
+
+            st.markdown(
+                f"""
+                <meta http-equiv="refresh"
+                content="0; url={auth_url}">
+                """,
+                unsafe_allow_html=True
+            )
+
+            st.info(
+                "Redirecting to Google sign-in..."
+            )
+
+        except Exception as e:
+            st.error(
+                "Unable to start Google authentication."
+            )
+            st.exception(e)
+
+    st.divider()
+
+    st.caption(
+        "🛡️ PhishGuard AI | "
+        "AI-powered Gmail phishing detection"
+    )
+
+    st.stop()
+
+
+# =========================================================
+# CONNECTED STATUS
+# =========================================================
+
+st.success("🟢 Connected to Gmail")
 
 
 # =========================================================
@@ -45,16 +108,13 @@ if st.button(
 
         try:
 
-            emails = get_recent_emails(
-                10
-            )
+            emails = get_recent_emails(10)
 
-            st.session_state[
-                "emails"
-            ] = emails
+            st.session_state["emails"] = emails
 
             st.success(
-                f"Successfully fetched {len(emails)} emails."
+                f"Successfully fetched "
+                f"{len(emails)} emails."
             )
 
         except Exception as e:
@@ -67,7 +127,7 @@ if st.button(
 
 
 # =========================================================
-# GET EMAILS
+# EMAILS
 # =========================================================
 
 emails = st.session_state.get(
@@ -80,28 +140,19 @@ if not emails:
 
     st.info(
         "📥 Click **🔄 Refresh Inbox** "
-        "to fetch emails from Gmail."
+        "to fetch your Gmail emails."
     )
 
 else:
 
-    st.header(
-        "📥 Gmail Inbox"
-    )
+    st.header("📥 Gmail Inbox")
 
     st.write(
         f"Showing {len(emails)} recent emails"
     )
 
 
-    # =====================================================
-    # ANALYZE EMAILS
-    # =====================================================
-
-    for index, email in enumerate(
-        emails,
-        start=1
-    ):
+    for email in emails:
 
         sender = email.get(
             "sender",
@@ -118,15 +169,10 @@ else:
             ""
         )
 
-        date = email.get(
-            "date",
-            ""
-        )
 
-
-        # -------------------------------------------------
-        # ANALYSIS
-        # -------------------------------------------------
+        # =================================================
+        # AI ANALYSIS
+        # =================================================
 
         try:
 
@@ -147,45 +193,23 @@ else:
             continue
 
 
-        prediction = result[
-            "prediction"
-        ]
+        prediction = result["prediction"]
 
-        risk_score = result[
-            "risk_score"
-        ]
+        risk_score = result["risk_score"]
 
-        threat_level = result[
-            "threat_level"
-        ]
+        threat_level = result["threat_level"]
 
-        confidence = result[
-            "confidence"
-        ]
+        confidence = result["confidence"]
 
-        indicators = result[
-            "indicators"
-        ]
+        indicators = result["indicators"]
 
-        urls = result[
-            "urls"
-        ]
+        warning = result["warning"]
 
-        url_risk = result[
-            "url_risk"
-        ]
-
-        attack_type = result[
-            "attack_type"
-        ]
-
-        warning = result[
-            "warning"
-        ]
+        urls = result["urls"]
 
 
         # =================================================
-        # DISPLAY STYLE
+        # DISPLAY STATUS
         # =================================================
 
         if prediction == "PHISHING":
@@ -194,11 +218,24 @@ else:
 
             title = "PHISHING"
 
-        elif prediction == "SUSPICIOUS":
+            box_message = (
+                "⚠️ **DON'T CLICK THIS MESSAGE**\n\n"
+                "Do not enter your password or OTP."
+            )
+
+
+        elif threat_level == "MEDIUM":
 
             icon = "🟠"
 
             title = "SUSPICIOUS"
+
+            box_message = (
+                "⚠️ This email contains suspicious "
+                "indicators. Check carefully before "
+                "clicking links."
+            )
+
 
         else:
 
@@ -206,27 +243,20 @@ else:
 
             title = "SAFE"
 
+            box_message = (
+                "No major suspicious indicators detected."
+            )
+
 
         # =================================================
         # EMAIL CARD
         # =================================================
 
-        with st.container(
-            border=True
-        ):
-
-            # ------------------------------------------------
-            # TITLE
-            # ------------------------------------------------
+        with st.container(border=True):
 
             st.markdown(
                 f"## {icon} {title}"
             )
-
-
-            # ------------------------------------------------
-            # BASIC INFORMATION
-            # ------------------------------------------------
 
             st.write(
                 f"**From:** {sender}"
@@ -237,55 +267,15 @@ else:
             )
 
             st.write(
-                f"**Date:** {date}"
+                f"**Risk Score:** `{risk_score}/100`"
             )
 
-
-            # ------------------------------------------------
-            # METRICS
-            # ------------------------------------------------
-
-            col1, col2, col3, col4 = st.columns(4)
-
-
-            with col1:
-
-                st.metric(
-                    "Risk Score",
-                    f"{risk_score}/100"
-                )
-
-
-            with col2:
-
-                st.metric(
-                    "Threat Level",
-                    threat_level
-                )
-
-
-            with col3:
-
-                st.metric(
-                    "ML Confidence",
-                    f"{confidence}%"
-                )
-
-
-            with col4:
-
-                st.metric(
-                    "Prediction",
-                    prediction
-                )
-
-
-            # ------------------------------------------------
-            # ATTACK TYPE
-            # ------------------------------------------------
+            st.write(
+                f"**Threat Level:** `{threat_level}`"
+            )
 
             st.write(
-                f"**Attack Type:** {attack_type}"
+                f"**ML Confidence:** `{confidence}%`"
             )
 
 
@@ -295,26 +285,15 @@ else:
 
             if prediction == "PHISHING":
 
-                st.error(
-                    f"⚠️ **DON'T CLICK THIS MESSAGE**\n\n"
-                    f"Do not enter your password, OTP "
-                    f"or banking information."
-                )
+                st.error(box_message)
 
-            elif prediction == "SUSPICIOUS":
+            elif threat_level == "MEDIUM":
 
-                st.warning(
-                    "⚠️ **SUSPICIOUS EMAIL**\n\n"
-                    "Check the sender and links carefully "
-                    "before taking action."
-                )
+                st.warning(box_message)
 
             else:
 
-                st.success(
-                    "🟢 **SAFE EMAIL**\n\n"
-                    "No major suspicious indicators detected."
-                )
+                st.success(box_message)
 
 
             # =================================================
@@ -333,42 +312,20 @@ else:
                             f"• {indicator}"
                         )
 
-            else:
+
+            # =================================================
+            # URLs
+            # =================================================
+
+            if urls:
 
                 with st.expander(
-                    "🔎 View Security Indicators"
+                    "🔗 View Detected URLs"
                 ):
-
-                    st.write(
-                        "No suspicious indicators detected."
-                    )
-
-
-            # =================================================
-            # DETECTED URLS
-            # =================================================
-
-            with st.expander(
-                "🔗 View Detected URLs"
-            ):
-
-                if urls:
-
-                    st.write(
-                        f"URL Risk: **{url_risk}/100**"
-                    )
 
                     for url in urls:
 
-                        st.code(
-                            url
-                        )
-
-                else:
-
-                    st.write(
-                        "No URLs detected."
-                    )
+                        st.code(url)
 
 
             # =================================================
@@ -388,13 +345,14 @@ else:
                 )
 
                 st.write(
-                    f"**Date:** {date}"
+                    f"**Date:** "
+                    f"{email.get('date', '')}"
                 )
 
                 st.divider()
 
                 st.text(
-                    body[:10000]
+                    body[:5000]
                 )
 
 
