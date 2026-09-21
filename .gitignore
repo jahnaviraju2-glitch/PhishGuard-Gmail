@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+
+credentials.json
+token.json
+
+.streamlit/secrets.toml
+.env
+dataset/phishing_email.csv
