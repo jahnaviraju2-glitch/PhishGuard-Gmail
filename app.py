@@ -9,11 +9,165 @@ from src.gmail_service import (
 from src.risk_engine import analyze_email
 
 
+# =========================================================
+# PAGE CONFIGURATION
+# =========================================================
+
 st.set_page_config(
     page_title="PhishGuard AI",
     page_icon="🛡️",
     layout="wide"
 )
+
+
+# =========================================================
+# PRIVACY POLICY PAGE
+# =========================================================
+
+if st.query_params.get("page") == "privacy":
+
+    st.title("🛡️ PhishGuard AI – Privacy Policy")
+
+    st.caption("Last updated: September 25, 2026")
+
+    st.write(
+        """
+        PhishGuard AI is a project that helps users analyze Gmail messages
+        for potential phishing and spam threats. This Privacy Policy explains
+        how PhishGuard AI accesses and uses information when a user chooses
+        to connect a Google Gmail account.
+        """
+    )
+
+    st.header("1. Information We Access")
+
+    st.write(
+        """
+        When you choose to connect Gmail, PhishGuard AI requests read-only
+        access to Gmail messages using the Google Gmail API. The application
+        may access email metadata and message content needed to analyze
+        messages for phishing and spam indicators.
+        """
+    )
+
+    st.header("2. How We Use Google User Data")
+
+    st.write(
+        """
+        Gmail data accessed by PhishGuard AI is used only to provide the
+        application's phishing and spam analysis features. The data may be
+        processed to identify suspicious links, keywords, sender information,
+        message patterns, and other security indicators.
+
+        PhishGuard AI does not use Google user data for advertising,
+        targeted advertising, or selling data to third parties.
+        """
+    )
+
+    st.header("3. Data Storage")
+
+    st.write(
+        """
+        PhishGuard AI is designed to process Gmail information only as
+        needed for the requested analysis. The application does not
+        intentionally maintain a separate permanent database of users'
+        Gmail message content.
+
+        OAuth credentials or access tokens, where temporarily required,
+        are handled for authentication and authorization purposes.
+        """
+    )
+
+    st.header("4. Data Sharing")
+
+    st.write(
+        """
+        PhishGuard AI does not sell or rent Google user data. Gmail data
+        is not shared with advertisers or data brokers.
+
+        Data may be processed by technical services used to operate the
+        application only when necessary to provide the requested
+        functionality.
+        """
+    )
+
+    st.header("5. Google API Services User Data Policy")
+
+    st.write(
+        """
+        PhishGuard AI's use and transfer of information received from
+        Google APIs will comply with the Google API Services User Data
+        Policy, including its Limited Use requirements.
+        """
+    )
+
+    st.markdown(
+        "[Google API Services User Data Policy]"
+        "(https://developers.google.com/terms/api-services-user-data-policy)"
+    )
+
+    st.header("6. User Control and Revoking Access")
+
+    st.write(
+        """
+        Users can stop using the application at any time. Google account
+        access granted to PhishGuard AI can also be revoked through the
+        user's Google Account security settings.
+        """
+    )
+
+    st.header("7. Security")
+
+    st.write(
+        """
+        Reasonable technical measures are used to protect information
+        handled by the application. However, no internet-based service
+        can guarantee absolute security.
+        """
+    )
+
+    st.header("8. Children's Privacy")
+
+    st.write(
+        """
+        PhishGuard AI is not specifically directed toward children under
+        the age of 13 and does not knowingly collect personal information
+        from children under 13.
+        """
+    )
+
+    st.header("9. Changes to This Privacy Policy")
+
+    st.write(
+        """
+        This Privacy Policy may be updated when the application's
+        functionality or data practices change. The latest version will
+        be published on this page with an updated date.
+        """
+    )
+
+    st.header("10. Contact")
+
+    st.write(
+        """
+        If you have questions about this Privacy Policy or PhishGuard AI's
+        data practices, contact:
+        """
+    )
+
+    st.markdown(
+        "**Email:** [jahnaviraju2@gmail.com]"
+        "(mailto:jahnaviraju2@gmail.com)"
+    )
+
+    st.divider()
+
+    st.caption(
+        "🛡️ PhishGuard AI | "
+        "AI-powered Gmail phishing detection"
+    )
+
+    st.stop()
 
 
 # =========================================================
@@ -24,7 +178,9 @@ if "gmail_token" not in st.session_state:
 
     try:
         handle_oauth_callback()
+
     except Exception as e:
+
         st.error("Google authentication failed.")
         st.exception(e)
 
@@ -56,6 +212,7 @@ if not st.session_state.get("gmail_token"):
     ):
 
         try:
+
             auth_url = get_authorization_url()
 
             st.markdown(
@@ -71,9 +228,11 @@ if not st.session_state.get("gmail_token"):
             )
 
         except Exception as e:
+
             st.error(
                 "Unable to start Google authentication."
             )
+
             st.exception(e)
 
     st.divider()
@@ -142,6 +301,7 @@ if not emails:
         "📥 Click **🔄 Refresh Inbox** "
         "to fetch your Gmail emails."
     )
+
 
 else:
 
@@ -314,7 +474,7 @@ else:
 
 
             # =================================================
-            # URLs
+            # URLS
             # =================================================
 
             if urls:
