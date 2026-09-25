@@ -144,17 +144,15 @@ st.title("🛡️ PhishGuard AI")
 st.subheader(
     "Smart Gmail Phishing & Spam Detection System"
 )
-
-
-# ============================================================
+# =========================================================
 # GOOGLE LOGIN
-# ============================================================
+# =========================================================
 
 if "gmail_token" not in st.session_state:
 
-    st.info(
-        "🔐 Connect your Gmail account to analyze "
-        "your emails for phishing and spam threats."
+    st.warning(
+        "🔐 Please connect your Gmail account "
+        "to analyze emails."
     )
 
     if st.button(
@@ -166,12 +164,10 @@ if "gmail_token" not in st.session_state:
 
             auth_url = get_authorization_url()
 
-            st.markdown(
-                f"""
-                <meta http-equiv="refresh"
-                content="0;url={auth_url}">
-                """,
-                unsafe_allow_html=True
+            st.link_button(
+                "Continue with Google",
+                auth_url,
+                use_container_width=True
             )
 
         except Exception as e:
@@ -185,8 +181,7 @@ if "gmail_token" not in st.session_state:
     st.divider()
 
     st.caption(
-        "🔒 Gmail access is requested only for email "
-        "analysis using read-only permissions."
+        "🔒 Gmail access uses read-only permission."
     )
 
     st.stop()
