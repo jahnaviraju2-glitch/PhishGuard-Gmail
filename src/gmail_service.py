@@ -4,6 +4,7 @@ import hmac
 import json
 import secrets
 import time
+from html import unescape
 
 import requests
 import streamlit as st
@@ -32,7 +33,24 @@ TOKEN_URL = "https://oauth2.googleapis.com/token"
 
 def get_oauth_config():
 
+    if "gmail_oauth" not in st.secrets:
+        raise RuntimeError(
+            "Missing [gmail_oauth] section in Streamlit Secrets."
+        )
+
     config = st.secrets["gmail_oauth"]
+
+    required_keys = [
+        "client_id",
+        "client_secret",
+        "redirect_uri"
+    ]
+
+    for key in required_keys:
+        if key not in config:
+            raise RuntimeError(
+                f"Missing '{key}' inside [gmail_oauth]."
+            )
 
     return {
         "client_id": config["client_id"],
@@ -67,8 +85,10 @@ def create_oauth_state():
         "signature": signature
     }
 
+    encoded = json.dumps(state_data).encode("utf-8")
+
     state = base64.urlsafe_b64encode(
-        json.dumps(state_data).encode("utf-8")
+        encoded
     ).decode("utf-8")
 
     return state
@@ -105,14 +125,12 @@ def verify_oauth_state(state):
             hashlib.sha256
         ).hexdigest()
 
-        # Verify signature
         if not hmac.compare_digest(
             signature,
             expected_signature
         ):
             return False
 
-        # State valid only for 10 minutes
         current_time = int(time.time())
 
         if current_time - int(timestamp) > 600:
@@ -121,7 +139,6 @@ def verify_oauth_state(state):
         return True
 
     except Exception:
-
         return False
 
 
@@ -136,7 +153,6 @@ def get_authorization_url():
     state = create_oauth_state()
 
     params = {
-
         "client_id": config["client_id"],
 
         "redirect_uri": config["redirect_uri"],
@@ -149,7 +165,9 @@ def get_authorization_url():
 
         "prompt": "consent",
 
-        "state": state,
+        "include_granted_scopes": "true",
+
+        "state": state
     }
 
     response = requests.Request(
@@ -173,38 +191,55 @@ def handle_oauth_callback():
 
     error = st.query_params.get("error")
 
-    # Google returned an error
+    error_description = st.query_params.get(
+        "error_description"
+    )
+
+    # --------------------------------------------------------
+    # GOOGLE RETURNED ERROR
+    # --------------------------------------------------------
+
     if error:
 
         st.error(
             f"Google OAuth error: {error}"
         )
 
+        if error_description:
+
+            st.warning(
+                error_description
+            )
+
         return False
 
-    # No authorization code
+    # --------------------------------------------------------
+    # NO AUTHORIZATION CODE
+    # --------------------------------------------------------
+
     if not code:
-
         return False
 
-    # Verify OAuth state
+    # --------------------------------------------------------
+    # VERIFY STATE
+    # --------------------------------------------------------
+
     if not verify_oauth_state(state):
 
         st.error(
             "OAuth security check failed. "
-            "Please try signing in again."
+            "Please start the Google sign-in again."
         )
 
         return False
 
     config = get_oauth_config()
 
-    # ========================================================
-    # EXCHANGE AUTHORIZATION CODE FOR ACCESS TOKEN
-    # ========================================================
+    # --------------------------------------------------------
+    # EXCHANGE CODE FOR TOKEN
+    # --------------------------------------------------------
 
     data = {
-
         "code": code,
 
         "client_id": config["client_id"],
@@ -213,17 +248,14 @@ def handle_oauth_callback():
 
         "redirect_uri": config["redirect_uri"],
 
-        "grant_type": "authorization_code",
+        "grant_type": "authorization_code"
     }
 
     try:
 
         response = requests.post(
-
             TOKEN_URL,
-
             data=data,
-
             timeout=30
         )
 
@@ -237,7 +269,10 @@ def handle_oauth_callback():
 
         return False
 
-    # Token exchange failed
+    # --------------------------------------------------------
+    # TOKEN ERROR
+    # --------------------------------------------------------
+
     if response.status_code != 200:
 
         st.error(
@@ -250,21 +285,37 @@ def handle_oauth_callback():
 
         return False
 
-    token_data = response.json()
+    try:
 
-    # ========================================================
-    # STORE GMAIL TOKEN
-    # ========================================================
+        token_data = response.json()
+
+    except Exception:
+
+        st.error(
+            "Google returned an invalid token response."
+        )
+
+        st.code(
+            response.text
+        )
+
+        return False
+
+    # --------------------------------------------------------
+    # STORE TOKEN
+    # --------------------------------------------------------
 
     st.session_state["gmail_token"] = token_data
 
-    # Remove OAuth parameters
+    # --------------------------------------------------------
+    # REMOVE QUERY PARAMETERS
+    # --------------------------------------------------------
+
     try:
 
         st.query_params.clear()
 
     except Exception:
-
         pass
 
     return True
@@ -286,9 +337,9 @@ def get_gmail_service():
 
     config = get_oauth_config()
 
-    # ========================================================
+    # --------------------------------------------------------
     # CREATE GOOGLE CREDENTIALS
-    # ========================================================
+    # --------------------------------------------------------
 
     credentials = Credentials(
 
@@ -306,12 +357,12 @@ def get_gmail_service():
 
         client_secret=config["client_secret"],
 
-        scopes=SCOPES,
+        scopes=SCOPES
     )
 
-    # ========================================================
+    # --------------------------------------------------------
     # REFRESH EXPIRED TOKEN
-    # ========================================================
+    # --------------------------------------------------------
 
     if credentials.expired and credentials.refresh_token:
 
@@ -335,16 +386,13 @@ def get_gmail_service():
 
             return None
 
-    # ========================================================
+    # --------------------------------------------------------
     # BUILD GMAIL SERVICE
-    # ========================================================
+    # --------------------------------------------------------
 
     return build(
-
         "gmail",
-
         "v1",
-
         credentials=credentials
     )
 
@@ -356,14 +404,25 @@ def get_gmail_service():
 def decode_message(data):
 
     if not data:
-
         return ""
 
     try:
 
-        return base64.urlsafe_b64decode(
+        # Gmail uses URL-safe Base64.
+        # Padding may sometimes be missing.
+
+        missing_padding = len(data) % 4
+
+        if missing_padding:
+            data += "=" * (
+                4 - missing_padding
+            )
+
+        decoded = base64.urlsafe_b64decode(
             data
-        ).decode(
+        )
+
+        return decoded.decode(
             "utf-8",
             errors="ignore"
         )
@@ -399,27 +458,73 @@ def extract_headers(headers):
 
 
 # ============================================================
+# REMOVE BASIC HTML TAGS
+# ============================================================
+
+def clean_html(text):
+
+    if not text:
+        return ""
+
+    import re
+
+    text = re.sub(
+        r"<br\s*/?>",
+        "\n",
+        text,
+        flags=re.IGNORECASE
+    )
+
+    text = re.sub(
+        r"</p>",
+        "\n",
+        text,
+        flags=re.IGNORECASE
+    )
+
+    text = re.sub(
+        r"<[^>]+>",
+        " ",
+        text
+    )
+
+    text = unescape(text)
+
+    return text
+
+
+# ============================================================
 # EXTRACT EMAIL BODY
 # ============================================================
 
 def get_email_body(payload):
 
-    body = ""
+    body_parts = []
 
-    # Direct body
-    if "body" in payload:
+    # --------------------------------------------------------
+    # DIRECT BODY
+    # --------------------------------------------------------
 
-        data = payload["body"].get(
-            "data"
+    body_data = payload.get(
+        "body",
+        {}
+    ).get(
+        "data"
+    )
+
+    if body_data:
+
+        decoded = decode_message(
+            body_data
         )
 
-        if data:
+        if decoded:
+            body_parts.append(decoded)
 
-            body += decode_message(
-                data
-            )
+    # --------------------------------------------------------
+    # MULTIPART EMAIL
+    # --------------------------------------------------------
 
-    # Multipart email
     parts = payload.get(
         "parts",
         []
@@ -432,7 +537,10 @@ def get_email_body(payload):
             ""
         )
 
-        # Plain text
+        # ----------------------------------------------------
+        # PLAIN TEXT
+        # ----------------------------------------------------
+
         if mime_type == "text/plain":
 
             data = part.get(
@@ -444,11 +552,14 @@ def get_email_body(payload):
 
             if data:
 
-                body += "\n" + decode_message(
-                    data
+                body_parts.append(
+                    decode_message(data)
                 )
 
+        # ----------------------------------------------------
         # HTML
+        # ----------------------------------------------------
+
         elif mime_type == "text/html":
 
             data = part.get(
@@ -460,25 +571,42 @@ def get_email_body(payload):
 
             if data:
 
-                body += "\n" + decode_message(
+                html = decode_message(
                     data
                 )
 
-        # Nested multipart
+                body_parts.append(
+                    clean_html(html)
+                )
+
+        # ----------------------------------------------------
+        # NESTED MULTIPART
+        # ----------------------------------------------------
+
         elif "parts" in part:
 
-            body += "\n" + get_email_body(
+            nested_body = get_email_body(
                 part
             )
 
-    return body
+            if nested_body:
+
+                body_parts.append(
+                    nested_body
+                )
+
+    return "\n".join(
+        body_parts
+    )
 
 
 # ============================================================
 # GET RECENT GMAIL EMAILS
 # ============================================================
 
-def get_recent_emails(max_results=10):
+def get_recent_emails(
+    max_results=10
+):
 
     service = get_gmail_service()
 
@@ -489,21 +617,17 @@ def get_recent_emails(max_results=10):
             "Please sign in with Google first."
         )
 
-    # ========================================================
+    # --------------------------------------------------------
     # GET INBOX MESSAGES
-    # ========================================================
+    # --------------------------------------------------------
 
     results = (
         service.users()
         .messages()
         .list(
-
             userId="me",
-
             labelIds=["INBOX"],
-
             maxResults=max_results
-
         )
         .execute()
     )
@@ -515,9 +639,9 @@ def get_recent_emails(max_results=10):
 
     emails = []
 
-    # ========================================================
+    # --------------------------------------------------------
     # READ EACH EMAIL
-    # ========================================================
+    # --------------------------------------------------------
 
     for message in messages:
 
@@ -525,13 +649,9 @@ def get_recent_emails(max_results=10):
             service.users()
             .messages()
             .get(
-
                 userId="me",
-
                 id=message["id"],
-
                 format="full"
-
             )
             .execute()
         )
@@ -572,7 +692,6 @@ def get_recent_emails(max_results=10):
             ),
 
             "body": body
-
         })
 
     return emails

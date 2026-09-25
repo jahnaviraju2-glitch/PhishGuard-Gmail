@@ -26,145 +26,104 @@ st.set_page_config(
 
 if st.query_params.get("page") == "privacy":
 
-    st.title("🛡️ PhishGuard AI – Privacy Policy")
-
-    st.caption("Last updated: September 25, 2026")
-
-    st.write(
-        """
-        PhishGuard AI is a project that helps users analyze Gmail messages
-        for potential phishing and spam threats. This Privacy Policy explains
-        how PhishGuard AI accesses and uses information when a user chooses
-        to connect a Google Gmail account.
-        """
+    st.title(
+        "🛡️ PhishGuard AI – Privacy Policy"
     )
-
-    st.header("1. Information We Access")
-
-    st.write(
-        """
-        When you choose to connect Gmail, PhishGuard AI requests read-only
-        access to Gmail messages using the Google Gmail API. The application
-        may access email metadata and message content needed to analyze
-        messages for phishing and spam indicators.
-        """
-    )
-
-    st.header("2. How We Use Google User Data")
-
-    st.write(
-        """
-        Gmail data accessed by PhishGuard AI is used only to provide the
-        application's phishing and spam analysis features. The data may be
-        processed to identify suspicious links, keywords, sender information,
-        message patterns, and other security indicators.
-
-        PhishGuard AI does not use Google user data for advertising,
-        targeted advertising, or selling data to third parties.
-        """
-    )
-
-    st.header("3. Data Storage")
-
-    st.write(
-        """
-        PhishGuard AI is designed to process Gmail information only as
-        needed for the requested analysis. The application does not
-        intentionally maintain a separate permanent database of users'
-        Gmail message content.
-
-        OAuth credentials or access tokens, where temporarily required,
-        are handled for authentication and authorization purposes.
-        """
-    )
-
-    st.header("4. Data Sharing")
-
-    st.write(
-        """
-        PhishGuard AI does not sell or rent Google user data. Gmail data
-        is not shared with advertisers or data brokers.
-
-        Data may be processed by technical services used to operate the
-        application only when necessary to provide the requested
-        functionality.
-        """
-    )
-
-    st.header("5. Google API Services User Data Policy")
-
-    st.write(
-        """
-        PhishGuard AI's use and transfer of information received from
-        Google APIs will comply with the Google API Services User Data
-        Policy, including its Limited Use requirements.
-        """
-    )
-
-    st.markdown(
-        "[Google API Services User Data Policy]"
-        "(https://developers.google.com/terms/api-services-user-data-policy)"
-    )
-
-    st.header("6. User Control and Revoking Access")
-
-    st.write(
-        """
-        Users can stop using the application at any time. Google account
-        access granted to PhishGuard AI can also be revoked through the
-        user's Google Account security settings.
-        """
-    )
-
-    st.header("7. Security")
-
-    st.write(
-        """
-        Reasonable technical measures are used to protect information
-        handled by the application. However, no internet-based service
-        can guarantee absolute security.
-        """
-    )
-
-    st.header("8. Children's Privacy")
-
-    st.write(
-        """
-        PhishGuard AI is not specifically directed toward children under
-        the age of 13 and does not knowingly collect personal information
-        from children under 13.
-        """
-    )
-
-    st.header("9. Changes to This Privacy Policy")
-
-    st.write(
-        """
-        This Privacy Policy may be updated when the application's
-        functionality or data practices change. The latest version will
-        be published on this page with an updated date.
-        """
-    )
-
-    st.header("10. Contact")
-
-    st.write(
-        """
-        If you have questions about this Privacy Policy or PhishGuard AI's
-        data practices, contact:
-        """
-    )
-
-    st.markdown(
-        "**Email:** [jahnaviraju2@gmail.com]"
-        "(mailto:jahnaviraju2@gmail.com)"
-    )
-
-    st.divider()
 
     st.caption(
-        "🛡️ PhishGuard AI | "
-        "AI-powered Gmail phishing detection"
+        "Last updated: September 25, 2026"
+    )
+
+    st.markdown(
+        """
+## 1. Information We Access
+
+PhishGuard AI requests read-only access to Gmail
+messages when the user chooses to connect a Google
+Gmail account.
+
+The application may access email metadata and
+message content required to analyze messages for
+phishing and spam indicators.
+
+## 2. How We Use Google User Data
+
+Gmail data is used only to provide the phishing
+and spam detection functionality.
+
+The application may analyze:
+
+- Email text
+- Sender information
+- Email subject
+- Suspicious keywords
+- URLs
+- Security-related indicators
+
+PhishGuard AI does not use Google user data for
+advertising or targeted advertising.
+
+PhishGuard AI does not sell Google user data.
+
+## 3. Data Storage
+
+The application is designed to process Gmail
+information only as necessary for the requested
+analysis.
+
+The application does not intentionally maintain
+a separate permanent database of users' Gmail
+message content.
+
+OAuth credentials and access tokens are handled
+only for authentication and Gmail API access.
+
+## 4. Data Sharing
+
+PhishGuard AI does not sell or rent Google user
+data.
+
+Gmail data is not shared with advertisers or
+data brokers.
+
+## 5. Google API Services
+
+PhishGuard AI's use of information received from
+Google APIs follows the Google API Services User
+Data Policy and its Limited Use requirements.
+
+## 6. Revoking Access
+
+Users can stop using PhishGuard AI at any time.
+
+Users can revoke Gmail access from their Google
+Account security settings.
+
+## 7. Security
+
+Reasonable technical measures are used to protect
+information handled by the application.
+
+However, no internet-based service can guarantee
+absolute security.
+
+## 8. Children's Privacy
+
+PhishGuard AI is not specifically directed toward
+children under the age of 13.
+
+## 9. Changes to This Policy
+
+This Privacy Policy may be updated when the
+application's functionality or data practices
+change.
+
+## 10. Contact
+
+For questions about this Privacy Policy:
+
+**Email:** jahnaviraju2@gmail.com
+        """
     )
 
     st.stop()
@@ -177,11 +136,15 @@ if st.query_params.get("page") == "privacy":
 if "gmail_token" not in st.session_state:
 
     try:
+
         handle_oauth_callback()
 
     except Exception as e:
 
-        st.error("Google authentication failed.")
+        st.error(
+            "Google authentication failed."
+        )
+
         st.exception(e)
 
 
@@ -189,7 +152,9 @@ if "gmail_token" not in st.session_state:
 # HEADER
 # =========================================================
 
-st.title("🛡️ PhishGuard AI")
+st.title(
+    "🛡️ PhishGuard AI"
+)
 
 st.subheader(
     "Smart Gmail Phishing & Spam Detection System"
@@ -200,14 +165,20 @@ st.subheader(
 # GMAIL CONNECTION
 # =========================================================
 
-if not st.session_state.get("gmail_token"):
+if not st.session_state.get(
+    "gmail_token"
+):
 
     st.warning(
         "🔐 Gmail access is required to analyze your inbox."
     )
 
+    # -----------------------------------------------------
+    # GOOGLE LOGIN BUTTON
+    # -----------------------------------------------------
+
     if st.button(
-        "🔑 Sign in with Google",
+        "🔑 Generate Google Sign-In Link",
         use_container_width=True
     ):
 
@@ -215,25 +186,83 @@ if not st.session_state.get("gmail_token"):
 
             auth_url = get_authorization_url()
 
-            st.markdown(
-                f"""
-                <meta http-equiv="refresh"
-                content="0; url={auth_url}">
-                """,
-                unsafe_allow_html=True
-            )
+            # Store URL for debugging
+            st.session_state[
+                "debug_auth_url"
+            ] = auth_url
 
-            st.info(
-                "Redirecting to Google sign-in..."
+            st.success(
+                "Google authorization URL generated."
             )
 
         except Exception as e:
 
             st.error(
-                "Unable to start Google authentication."
+                "Unable to generate Google authorization URL."
             )
 
             st.exception(e)
+
+    # -----------------------------------------------------
+    # DEBUG GOOGLE URL
+    # -----------------------------------------------------
+
+    auth_url = st.session_state.get(
+        "debug_auth_url"
+    )
+
+    if auth_url:
+
+        st.divider()
+
+        st.subheader(
+            "🔧 OAuth Debug"
+        )
+
+        st.info(
+            "Click the button below to open Google authorization."
+        )
+
+        st.link_button(
+            "🔐 OPEN GOOGLE AUTHORIZATION",
+            auth_url,
+            use_container_width=True
+        )
+
+        st.write(
+            "Generated OAuth URL:"
+        )
+
+        st.code(
+            auth_url,
+            language="text"
+        )
+
+        st.warning(
+            "⚠️ Do not share screenshots containing "
+            "private credentials. The URL above does "
+            "not contain your client secret."
+        )
+
+    # -----------------------------------------------------
+    # INFORMATION
+    # -----------------------------------------------------
+
+    st.divider()
+
+    st.info(
+        """
+### What to do now
+
+1. Click **Generate Google Sign-In Link**
+2. Click **OPEN GOOGLE AUTHORIZATION**
+3. Google login page will open
+4. If the 403 page appears, take a screenshot
+5. Send me that screenshot
+
+Do not change your Google Cloud settings yet.
+"""
+    )
 
     st.divider()
 
@@ -249,7 +278,9 @@ if not st.session_state.get("gmail_token"):
 # CONNECTED STATUS
 # =========================================================
 
-st.success("🟢 Connected to Gmail")
+st.success(
+    "🟢 Connected to Gmail"
+)
 
 
 # =========================================================
@@ -267,9 +298,13 @@ if st.button(
 
         try:
 
-            emails = get_recent_emails(10)
+            emails = get_recent_emails(
+                10
+            )
 
-            st.session_state["emails"] = emails
+            st.session_state[
+                "emails"
+            ] = emails
 
             st.success(
                 f"Successfully fetched "
@@ -305,12 +340,18 @@ if not emails:
 
 else:
 
-    st.header("📥 Gmail Inbox")
+    st.header(
+        "📥 Gmail Inbox"
+    )
 
     st.write(
         f"Showing {len(emails)} recent emails"
     )
 
+
+    # =====================================================
+    # ANALYZE EACH EMAIL
+    # =====================================================
 
     for email in emails:
 
@@ -330,9 +371,9 @@ else:
         )
 
 
-        # =================================================
+        # -------------------------------------------------
         # AI ANALYSIS
-        # =================================================
+        # -------------------------------------------------
 
         try:
 
@@ -353,24 +394,45 @@ else:
             continue
 
 
-        prediction = result["prediction"]
+        prediction = result.get(
+            "prediction",
+            "UNKNOWN"
+        )
 
-        risk_score = result["risk_score"]
+        risk_score = result.get(
+            "risk_score",
+            0
+        )
 
-        threat_level = result["threat_level"]
+        threat_level = result.get(
+            "threat_level",
+            "LOW"
+        )
 
-        confidence = result["confidence"]
+        confidence = result.get(
+            "confidence",
+            0
+        )
 
-        indicators = result["indicators"]
+        indicators = result.get(
+            "indicators",
+            []
+        )
 
-        warning = result["warning"]
+        warning = result.get(
+            "warning",
+            ""
+        )
 
-        urls = result["urls"]
+        urls = result.get(
+            "urls",
+            []
+        )
 
 
-        # =================================================
+        # -------------------------------------------------
         # DISPLAY STATUS
-        # =================================================
+        # -------------------------------------------------
 
         if prediction == "PHISHING":
 
@@ -384,7 +446,10 @@ else:
             )
 
 
-        elif threat_level == "MEDIUM":
+        elif threat_level in [
+            "MEDIUM",
+            "HIGH"
+        ]:
 
             icon = "🟠"
 
@@ -408,11 +473,13 @@ else:
             )
 
 
-        # =================================================
+        # -------------------------------------------------
         # EMAIL CARD
-        # =================================================
+        # -------------------------------------------------
 
-        with st.container(border=True):
+        with st.container(
+            border=True
+        ):
 
             st.markdown(
                 f"## {icon} {title}"
@@ -439,26 +506,35 @@ else:
             )
 
 
-            # =================================================
+            # ------------------------------------------------
             # WARNING
-            # =================================================
+            # ------------------------------------------------
 
             if prediction == "PHISHING":
 
-                st.error(box_message)
+                st.error(
+                    box_message
+                )
 
-            elif threat_level == "MEDIUM":
+            elif threat_level in [
+                "MEDIUM",
+                "HIGH"
+            ]:
 
-                st.warning(box_message)
+                st.warning(
+                    box_message
+                )
 
             else:
 
-                st.success(box_message)
+                st.success(
+                    box_message
+                )
 
 
-            # =================================================
+            # ------------------------------------------------
             # SECURITY INDICATORS
-            # =================================================
+            # ------------------------------------------------
 
             if indicators:
 
@@ -473,9 +549,9 @@ else:
                         )
 
 
-            # =================================================
-            # URLS
-            # =================================================
+            # ------------------------------------------------
+            # DETECTED URLS
+            # ------------------------------------------------
 
             if urls:
 
@@ -485,12 +561,29 @@ else:
 
                     for url in urls:
 
-                        st.code(url)
+                        st.code(
+                            url
+                        )
 
 
-            # =================================================
+            # ------------------------------------------------
+            # WARNING DETAILS
+            # ------------------------------------------------
+
+            if warning:
+
+                with st.expander(
+                    "⚠️ Analysis Warning"
+                ):
+
+                    st.write(
+                        warning
+                    )
+
+
+            # ------------------------------------------------
             # FULL EMAIL
-            # =================================================
+            # ------------------------------------------------
 
             with st.expander(
                 "📧 View Full Email"
